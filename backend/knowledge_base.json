@@ -1,0 +1,186 @@
+{
+  "facility_types": {
+    "school": {
+      "systems": ["CCTV", "PA System", "Projector", "Networking"],
+      "notes": "Focus on safety, announcements, and classroom AV"
+    },
+    "college": {
+      "systems": ["CCTV", "PA System", "Projector", "LED Display", "Networking"],
+      "notes": "Large campus with multi-building coverage"
+    },
+    "office": {
+      "systems": ["CCTV", "Video Conferencing", "Access Control", "Networking"],
+      "notes": "Focus on security and collaboration"
+    },
+    "auditorium": {
+      "systems": ["Sound System", "Stage Lighting", "LED Display", "Projection"],
+      "notes": "High-quality audio and visual experience required"
+    },
+    "hospital": {
+      "systems": ["CCTV", "PA System", "Networking"],
+      "notes": "Security and emergency communication critical"
+    },
+    "factory": {
+      "systems": ["CCTV", "PA System", "Perimeter Security", "Networking"],
+      "notes": "Outdoor + indoor industrial monitoring"
+    },
+    "stadium": {
+      "systems": ["CCTV", "PA System", "LED Display", "Stage Lighting"],
+      "notes": "Large-scale public communication and monitoring"
+    },
+    "retail": {
+      "systems": ["CCTV", "Digital Display", "PA System"],
+      "notes": "Customer engagement + theft prevention"
+    },
+    "other": {
+      "systems": ["CCTV", "Networking"],
+      "notes": "Generic setup based on requirement"
+    }
+  },
+
+  "goals": {
+    "security": {
+      "systems": ["CCTV", "Perimeter Security", "Access Control"],
+      "description": "Monitoring, recording, and safety"
+    },
+    "communication": {
+      "systems": ["PA System"],
+      "description": "Announcements and voice communication"
+    },
+    "av_experience": {
+      "systems": ["Sound System", "LED Display", "Projection"],
+      "description": "Presentation and visual experience"
+    },
+    "collaboration": {
+      "systems": ["Video Conferencing", "Audio Systems"],
+      "description": "Meetings and remote communication"
+    },
+    "full_integration": {
+      "systems": ["CCTV", "PA System", "Networking", "Lighting", "AV Systems"],
+      "description": "Complete smart infrastructure"
+    }
+  },
+
+  "system_details": {
+    "CCTV": {
+      "components": [
+        "IP Cameras",
+        "Analog Cameras",
+        "Night Vision Cameras",
+        "NVR/DVR Recording System",
+        "Remote Monitoring",
+        "Central Control Room"
+      ],
+      "use_cases": ["Security", "Surveillance", "Monitoring"]
+    },
+    "PA System": {
+      "components": [
+        "Speakers",
+        "Amplifiers",
+        "Microphones",
+        "Zoning Controllers"
+      ],
+      "use_cases": ["Announcements", "Emergency Communication"]
+    },
+    "Sound System": {
+      "components": [
+        "High-performance speakers",
+        "Digital mixers",
+        "Amplifiers",
+        "Wireless microphones"
+      ],
+      "use_cases": ["Auditoriums", "Events"]
+    },
+    "LED Display": {
+      "components": [
+        "Large-format LED panels",
+        "Video wall processors",
+        "Mounting structures"
+      ],
+      "use_cases": ["Displays", "Information boards"]
+    },
+    "Projection": {
+      "components": [
+        "High-lumen projectors",
+        "Projection screens",
+        "Mounting systems"
+      ],
+      "use_cases": ["Classrooms", "Boardrooms"]
+    },
+    "Stage Lighting": {
+      "components": [
+        "LED stage lights",
+        "Control consoles",
+        "Lighting rigs"
+      ],
+      "use_cases": ["Events", "Performances"]
+    },
+    "Video Conferencing": {
+      "components": [
+        "Cameras",
+        "Microphones",
+        "Control systems",
+        "Display integration"
+      ],
+      "use_cases": ["Meetings", "Remote collaboration"]
+    },
+    "Networking": {
+      "components": [
+        "Structured cabling",
+        "Switches",
+        "Racks",
+        "Control systems"
+      ],
+      "use_cases": ["Connectivity", "System integration"]
+    },
+    "Access Control": {
+      "components": [
+        "Biometric systems",
+        "RFID readers",
+        "Entry control systems"
+      ],
+      "use_cases": ["Restricted access", "Security"]
+    },
+    "Perimeter Security": {
+      "components": [
+        "Outdoor cameras",
+        "Motion sensors",
+        "Alarm systems"
+      ],
+      "use_cases": ["Boundary protection"]
+    }
+  },
+
+  "size_rules": {
+    "small": {
+      "description": "Single room or small facility",
+      "approach": "Basic setup with minimal components"
+    },
+    "medium": {
+      "description": "Multi-room or small building",
+      "approach": "Zoned setup with moderate coverage"
+    },
+    "large": {
+      "description": "Large building or campus",
+      "approach": "Multi-zone integrated system with central control"
+    }
+  },
+
+  "setup_type": {
+    "new": {
+      "approach": "Design from scratch with optimized layout"
+    },
+    "upgrade": {
+      "approach": "Integrate with existing systems and enhance performance"
+    }
+  },
+
+  "recommendation_logic": {
+    "merge_strategy": "Combine systems from facility + goal",
+    "deduplication": "Remove duplicate systems",
+    "priority": [
+      "Goal-based systems",
+      "Facility-based systems"
+    ]
+  }
+}
