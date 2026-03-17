@@ -1,5 +1,7 @@
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 export async function sendMessage(message, userId = "user1") {
-  const res = await fetch("http://127.0.0.1:8000/chat", {
+  const res = await fetch(`${BASE_URL}/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
