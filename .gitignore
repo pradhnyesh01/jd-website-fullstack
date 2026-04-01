@@ -58,6 +58,8 @@ backend/.env
 # Mac
 .DS_Store
 
+CLAUDE.md
+
 # Optional npm cache directory
 .npm
 
