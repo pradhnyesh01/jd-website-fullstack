@@ -12,8 +12,8 @@ def normalize_output(raw_output):
         return None
 
     return {
-        "facility": data.get("facility") if data.get("facility") in VALID_FACILITIES else "other",
-        "goal": data.get("goal") if data.get("goal") in VALID_GOALS else "full_integration",
-        "size": data.get("size") if data.get("size") in VALID_SIZES else "medium",
-        "setup_type": data.get("setup_type") if data.get("setup_type") in VALID_SETUP else "new"
+        "facility":   data.get("facility")   if data.get("facility")   in VALID_FACILITIES else None,
+        "goal":       data.get("goal")       if data.get("goal")       in VALID_GOALS      else None,
+        "size":       data.get("size")       if data.get("size")       in VALID_SIZES      else None,
+        "setup_type": data.get("setup_type") if data.get("setup_type") in VALID_SETUP      else None,
     }
