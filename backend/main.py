@@ -8,7 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,https://jdenterprisespune.co.in,https://www.jdenterprisespune.co.in"
+).split(",")
 SESSION_TTL = 1800  # 30 minutes
 
 app.add_middleware(
