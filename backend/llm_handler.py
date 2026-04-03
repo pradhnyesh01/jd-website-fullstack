@@ -19,7 +19,8 @@ Extract the following fields from the user query:
 - setup_type (choose: new, upgrade)
 
 Rules:
-- Infer intelligently if not explicitly mentioned
+- Only extract a field if the user has clearly stated or strongly implied it
+- If a field cannot be confidently determined from the query, set it to null
 - Return ONLY valid JSON
 - Do NOT explain anything
 
@@ -29,16 +30,24 @@ Input: "CCTV for office"
 Output: {{
   "facility": "office",
   "goal": "security",
-  "size": "medium",
-  "setup_type": "new"
+  "size": null,
+  "setup_type": null
 }}
 
 Input: "Upgrade sound system in auditorium"
 Output: {{
   "facility": "auditorium",
   "goal": "av_experience",
-  "size": "medium",
+  "size": null,
   "setup_type": "upgrade"
+}}
+
+Input: "I need help"
+Output: {{
+  "facility": null,
+  "goal": null,
+  "size": null,
+  "setup_type": null
 }}
 
 Now extract:
