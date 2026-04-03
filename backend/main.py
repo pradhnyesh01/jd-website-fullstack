@@ -39,7 +39,8 @@ def get_or_create_session(user_id: str) -> dict:
 
     if user_id not in sessions:
         sessions[user_id] = {
-            "state": {"facility": None, "goal": None, "size": None, "setup_type": None},
+            "state": {"facility": None, "goal": None, "size": None, "setup_type": None,
+                      "budget_tier": None, "num_zones": None},
             "last_active": now,
         }
     else:
@@ -69,7 +70,8 @@ async def chat(data: ChatRequest):
     response = format_recommendation(result)
 
     # Reset session
-    sessions[user_id]["state"] = {"facility": None, "goal": None, "size": None, "setup_type": None}
+    sessions[user_id]["state"] = {"facility": None, "goal": None, "size": None, "setup_type": None,
+                                   "budget_tier": None, "num_zones": None}
 
     return {
         "type": "result",

@@ -15,10 +15,17 @@ import Contact from "./pages/Contact";
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatQuoteData, setChatQuoteData] = useState(null);
+
+  function handleOpenQuote(quoteData) {
+    setChatQuoteData(quoteData);
+    setIsModalOpen(true);
+  }
+
   return (
     <>
-      <Navbar 
-        onOpenModal={() => setIsModalOpen(true)} 
+      <Navbar
+        onOpenModal={() => setIsModalOpen(true)}
         onOpenChat={() => setIsChatOpen(true)}
       />
       <ScrollToTop />
@@ -37,10 +44,15 @@ function App() {
 
       <QuoteModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setChatQuoteData(null); }}
+        prefillData={chatQuoteData}
       />
 
-      <ChatAssistant isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
+      <ChatAssistant
+        isOpen={isChatOpen}
+        setIsOpen={setIsChatOpen}
+        onOpenQuote={handleOpenQuote}
+      />
 
     </>
   );

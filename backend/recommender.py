@@ -68,11 +68,20 @@ def apply_setup_logic(setup_type):
 # MAIN RECOMMENDATION FUNCTION
 # ================================
 
+def get_brands(system, budget_tier):
+    brand_map = kb.get("brand_recommendations", {})
+    if system in brand_map and budget_tier in brand_map[system]:
+        return brand_map[system][budget_tier]
+    return []
+
+
 def generate_recommendation(data):
     facility = data.get("facility")
     goal = data.get("goal")
     size = data.get("size")
     setup_type = data.get("setup_type")
+    budget_tier = data.get("budget_tier")
+    num_zones = data.get("num_zones")
 
     # Step 1: Get systems
     systems = get_systems(facility, goal)
@@ -80,17 +89,28 @@ def generate_recommendation(data):
     # Step 2: Expand systems into components
     details = expand_systems(systems)
 
-    # Step 3: Apply context logic
+    # Step 3: Attach brand recommendations per system
+    brands = {}
+    if budget_tier:
+        for system in details:
+            recommended = get_brands(system, budget_tier)
+            if recommended:
+                brands[system] = recommended
+
+    # Step 4: Apply context logic
     size_note = apply_size_logic(size)
     setup_note = apply_setup_logic(setup_type)
 
     return {
         "systems": details,
+        "brands": brands,
         "size_note": size_note,
         "setup_note": setup_note,
         "facility": facility,
         "size": size,
         "setup_type": setup_type,
+        "budget_tier": budget_tier,
+        "num_zones": num_zones,
     }
 
 
@@ -101,7 +121,8 @@ def generate_recommendation(data):
 def format_recommendation(result):
     output = "Based on your requirements, here’s a recommended setup:\n\n"
 
-    # Systems + components
+    # Systems + components + brands
+    brands = result.get("brands", {})
     for system, components in result["systems"].items():
         if components:
             output += f"🔹 {system}\n"
@@ -109,6 +130,8 @@ def format_recommendation(result):
                 output += f"  - {comp}\n"
         else:
             output += f"🔹 {system} — contact us for detailed specification\n"
+        if system in brands:
+            output += f"  → Recommended brands: {', '.join(brands[system])}\n"
         output += "\n"
 
     # Size logic

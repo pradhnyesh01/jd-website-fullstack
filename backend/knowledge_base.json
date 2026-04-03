@@ -194,6 +194,59 @@
     }
   },
 
+  "brand_recommendations": {
+    "CCTV": {
+      "low":    ["CP Plus"],
+      "medium": ["Hikvision", "CP Plus"],
+      "high":   ["Honeywell", "Hikvision", "Samsung"]
+    },
+    "PA System": {
+      "low":    ["Ahuja"],
+      "medium": ["Bosch", "Ahuja"],
+      "high":   ["BOSE", "JBL", "Bosch"]
+    },
+    "Sound System": {
+      "low":    ["Ahuja"],
+      "medium": ["JBL", "Crown"],
+      "high":   ["BOSE", "JBL", "Yamaha", "EV"]
+    },
+    "Video Conferencing": {
+      "low":    ["Logitech"],
+      "medium": ["Poly", "Logitech"],
+      "high":   ["Poly", "Lumens", "Peoplink"]
+    },
+    "LED Display": {
+      "low":    ["Logic"],
+      "medium": ["LG", "Samsung"],
+      "high":   ["Samsung", "Sony", "Panasonic"]
+    },
+    "Projection": {
+      "low":    ["Panasonic"],
+      "medium": ["Sharp", "Panasonic"],
+      "high":   ["Sony", "Panasonic"]
+    },
+    "Stage Lighting": {
+      "low":    ["Raytech"],
+      "medium": ["Canara Lighting", "Leksa"],
+      "high":   ["Leksa Lighting", "Satan"]
+    },
+    "Networking": {
+      "low":    ["TP-Link"],
+      "medium": ["D-Link", "TP-Link"],
+      "high":   ["Cisco", "D-Link"]
+    },
+    "Access Control": {
+      "low":    ["CP Plus"],
+      "medium": ["Hikvision", "CP Plus"],
+      "high":   ["Honeywell", "Hikvision"]
+    },
+    "Perimeter Security": {
+      "low":    ["CP Plus"],
+      "medium": ["Hikvision"],
+      "high":   ["Honeywell", "Hikvision"]
+    }
+  },
+
   "recommendation_logic": {
     "merge_strategy": "Combine systems from facility + goal",
     "deduplication": "Remove duplicate systems",

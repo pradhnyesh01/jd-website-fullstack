@@ -9,17 +9,23 @@ from parser import normalize_output
 # ================================
 
 def next_question(state):
-    if not state["facility"]:
+    if not state.get("facility"):
         return "What type of facility is this for? (e.g., school, office, hospital)"
 
-    if not state["goal"]:
+    if not state.get("goal"):
         return "What is your main objective? (security, communication, AV experience, full integration)"
 
-    if not state["size"]:
+    if not state.get("size"):
         return "How large is the space? (small, medium, large or describe)"
 
-    if not state["setup_type"]:
+    if not state.get("setup_type"):
         return "Are you setting this up from scratch or upgrading an existing system?"
+
+    if not state.get("budget_tier"):
+        return "What is your approximate budget range? (low: under ₹2L / medium: ₹2–10L / high: above ₹10L)"
+
+    if not state.get("num_zones"):
+        return "How many separate areas or zones need coverage? (single / multiple)"
 
     return None
 
@@ -54,29 +60,73 @@ def update_state(state, user_input):
                 state["goal"] = "full_integration"
 
     # Size
+    large_words = ["large", "big", "campus", "huge", "massive", "wide"]
+    small_words = ["small", "tiny", "single room", "compact"]
     if not state["size"]:
-        if any(word in user_input_lower for word in ["small", "medium", "large", "campus"]):
-            if "small" in user_input_lower:
+        if any(w in user_input_lower for w in large_words + small_words + ["medium"]):
+            if any(w in user_input_lower for w in small_words):
                 state["size"] = "small"
             elif "medium" in user_input_lower:
                 state["size"] = "medium"
-            else:
+            elif any(w in user_input_lower for w in large_words):
                 state["size"] = "large"
 
     # Setup type
+    upgrade_words = ["upgrade", "existing", "already have", "replace", "retrofit"]
+    new_words = ["new", "scratch", "fresh", "brand new", "greenfield"]
     if not state["setup_type"]:
-        if any(word in user_input_lower for word in ["new", "upgrade"]):
-            if "upgrade" in user_input_lower:
+        if any(w in user_input_lower for w in upgrade_words + new_words):
+            if any(w in user_input_lower for w in upgrade_words):
                 state["setup_type"] = "upgrade"
             else:
                 state["setup_type"] = "new"
 
+    # Budget tier
+    # Use budget-specific context words as primary triggers to avoid
+    # colliding with "medium"/"low"/"high" answers meant for size.
+    # Bare low/medium/high only apply once setup_type is filled
+    # (i.e., the size question is already answered).
+    budget_context_words = ["budget", "cost", "price", "affordable", "cheap", "premium", "expensive", "₹", "lakh"]
+    if not state.get("budget_tier"):
+        if any(w in user_input_lower for w in budget_context_words):
+            if any(w in user_input_lower for w in ["low", "cheap", "affordable"]):
+                state["budget_tier"] = "low"
+            elif any(w in user_input_lower for w in ["high", "premium", "expensive"]):
+                state["budget_tier"] = "high"
+            else:
+                state["budget_tier"] = "medium"
+        elif state.get("setup_type") and any(w in user_input_lower for w in ["low", "medium", "high"]):
+            # Safe to use bare words here — size is already answered
+            if "low" in user_input_lower:
+                state["budget_tier"] = "low"
+            elif "high" in user_input_lower:
+                state["budget_tier"] = "high"
+            elif "medium" in user_input_lower:
+                state["budget_tier"] = "medium"
+
+    # Number of zones
+    if not state.get("num_zones"):
+        if any(word in user_input_lower for word in ["single", "one", "multiple", "several", "many", "zones", "areas"]):
+            if any(w in user_input_lower for w in ["multiple", "several", "many", "zones", "areas"]):
+                state["num_zones"] = "multiple"
+            elif any(w in user_input_lower for w in ["single", "one"]):
+                state["num_zones"] = "single"
+
     # Step 2: fallback to LLM for any still-missing fields
-    if not all([state["facility"], state["goal"], state["size"], state["setup_type"]]):
+    all_fields = ["facility", "goal", "size", "setup_type", "budget_tier", "num_zones"]
+    missing_fields = [f for f in all_fields if not state.get(f)]
+
+    if missing_fields:
         extracted = normalize_output(extract_user_info(user_input))
 
         if extracted:
-            for key in ["facility", "goal", "size", "setup_type"]:
+            # Short replies (≤ 3 words) are answering one specific question —
+            # only apply the result to the first missing field to prevent
+            # the LLM from filling unrelated fields with guesses.
+            word_count = len(user_input.strip().split())
+            fields_to_apply = [missing_fields[0]] if word_count <= 3 else missing_fields
+
+            for key in fields_to_apply:
                 if not state.get(key) and extracted.get(key):
                     state[key] = extracted[key]
 

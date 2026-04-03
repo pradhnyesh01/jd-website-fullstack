@@ -1,15 +1,31 @@
 import { useState, useEffect, useRef } from "react";
 import { sendMessage } from "../services/api";
 
-export default function ChatAssistant({ isOpen, setIsOpen }) {
+// Maps system names from quote_data to QuoteModal service options
+const SYSTEM_TO_SERVICE = {
+  "CCTV": "CCTV Surveillance",
+  "Perimeter Security": "CCTV Surveillance",
+  "Access Control": "CCTV Surveillance",
+  "Sound System": "Audio Systems",
+  "PA System": "Audio Systems",
+  "AV Systems": "Audio Systems",
+  "Video Conferencing": "Audio Systems",
+  "Stage Lighting": "Lighting Systems",
+  "Lighting": "Lighting Systems",
+  "Projection": "LCD Projectors",
+  "LED Display": "LCD Projectors",
+};
+
+export default function ChatAssistant({ isOpen, setIsOpen, onOpenQuote }) {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hi! I’ll help you design the right system.\n\nTell me what you're planning 🙂"
+      text: "Hi! I'll help you design the right system.\n\nTell me what you're planning 🙂"
     }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lastQuoteData, setLastQuoteData] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -17,7 +33,6 @@ export default function ChatAssistant({ isOpen, setIsOpen }) {
     if (!input.trim()) return;
 
     const userText = input;
-
     setMessages(prev => [...prev, { sender: "user", text: userText }]);
     setInput("");
     setLoading(true);
@@ -25,10 +40,11 @@ export default function ChatAssistant({ isOpen, setIsOpen }) {
     try {
       const response = await sendMessage(userText);
 
-      setMessages(prev => [
-        ...prev,
-        { sender: "bot", text: response.message }
-      ]);
+      setMessages(prev => [...prev, { sender: "bot", text: response.message }]);
+
+      if (response.type === "result" && response.quote_data) {
+        setLastQuoteData(response.quote_data);
+      }
     } catch (err) {
       setMessages(prev => [
         ...prev,
@@ -47,7 +63,7 @@ export default function ChatAssistant({ isOpen, setIsOpen }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 w-[360px] h-[520px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border z-50">
+    <div className="fixed bottom-6 right-6 w-[360px] h-[560px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border z-50">
 
       {/* Header */}
       <div className="bg-black text-white px-4 py-3 flex justify-between items-center">
@@ -75,6 +91,18 @@ export default function ChatAssistant({ isOpen, setIsOpen }) {
           <div className="text-sm text-gray-500">AI is thinking...</div>
         )}
 
+        {/* Get Quote button — shown after recommendation is delivered */}
+        {lastQuoteData && !loading && (
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={() => onOpenQuote && onOpenQuote(lastQuoteData)}
+              className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition"
+            >
+              📋 Get Quote for This Setup
+            </button>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -91,7 +119,7 @@ export default function ChatAssistant({ isOpen, setIsOpen }) {
           onClick={handleSend}
           className="bg-blue-600 text-white px-4 hover:bg-blue-700 transition"
         >
-          Send  
+          Send
         </button>
       </div>
     </div>
