@@ -87,7 +87,10 @@ def generate_recommendation(data):
     return {
         "systems": details,
         "size_note": size_note,
-        "setup_note": setup_note
+        "setup_note": setup_note,
+        "facility": facility,
+        "size": size,
+        "setup_type": setup_type,
     }
 
 
@@ -100,9 +103,12 @@ def format_recommendation(result):
 
     # Systems + components
     for system, components in result["systems"].items():
-        output += f"🔹 {system}\n"
-        for comp in components:
-            output += f"  - {comp}\n"
+        if components:
+            output += f"🔹 {system}\n"
+            for comp in components:
+                output += f"  - {comp}\n"
+        else:
+            output += f"🔹 {system} — contact us for detailed specification\n"
         output += "\n"
 
     # Size logic
