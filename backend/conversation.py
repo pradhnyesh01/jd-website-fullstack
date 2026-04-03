@@ -1,6 +1,7 @@
 # conversation.py
 
-from extract_pipeline import process_query
+from llm_handler import extract_user_info
+from parser import normalize_output
 
 
 # ================================
@@ -30,7 +31,7 @@ def next_question(state):
 def update_state(state, user_input):
     user_input_lower = user_input.lower()
 
-    # 🔥 Step 1: Try direct keyword matching FIRST
+    # Step 1: Try direct keyword matching across ALL fields (no early returns)
 
     # Facility
     if not state["facility"]:
@@ -39,7 +40,6 @@ def update_state(state, user_input):
                 word for word in ["school", "college", "office", "hospital", "auditorium", "factory", "stadium"]
                 if word in user_input_lower
             )
-            return state
 
     # Goal
     if not state["goal"]:
@@ -52,7 +52,6 @@ def update_state(state, user_input):
                 state["goal"] = "av_experience"
             elif "integration" in user_input_lower:
                 state["goal"] = "full_integration"
-            return state
 
     # Size
     if not state["size"]:
@@ -63,7 +62,6 @@ def update_state(state, user_input):
                 state["size"] = "medium"
             else:
                 state["size"] = "large"
-            return state
 
     # Setup type
     if not state["setup_type"]:
@@ -72,15 +70,14 @@ def update_state(state, user_input):
                 state["setup_type"] = "upgrade"
             else:
                 state["setup_type"] = "new"
-            return state
 
-    # 🔥 Step 2: fallback to LLM ONLY if needed
-    from extract_pipeline import process_query
-    extracted = process_query(user_input)
+    # Step 2: fallback to LLM for any still-missing fields
+    if not all([state["facility"], state["goal"], state["size"], state["setup_type"]]):
+        extracted = normalize_output(extract_user_info(user_input))
 
-    for key in ["facility", "goal", "size", "setup_type"]:
-        if not state.get(key) and extracted.get(key):
-            state[key] = extracted[key]
-            break
+        if extracted:
+            for key in ["facility", "goal", "size", "setup_type"]:
+                if not state.get(key) and extracted.get(key):
+                    state[key] = extracted[key]
 
     return state
