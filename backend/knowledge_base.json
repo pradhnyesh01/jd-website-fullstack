@@ -148,6 +148,25 @@
         "Alarm systems"
       ],
       "use_cases": ["Boundary protection"]
+    },
+    "AV Systems": {
+      "components": [
+        "Display Screens",
+        "Projectors",
+        "Audio Amplifiers",
+        "Microphones",
+        "Media Players"
+      ],
+      "use_cases": ["Presentations", "Events", "Collaboration"]
+    },
+    "Lighting": {
+      "components": [
+        "LED Panels",
+        "Stage Spotlights",
+        "DMX Controllers",
+        "Emergency Lighting"
+      ],
+      "use_cases": ["Events", "Ambience", "Safety"]
     }
   },
 
