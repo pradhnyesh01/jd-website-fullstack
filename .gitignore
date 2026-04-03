@@ -54,6 +54,7 @@ node_modules/
 # Python
 backend/__pycache__/
 backend/.env
+backend/sessions.db
 
 # Mac
 .DS_Store
