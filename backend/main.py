@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from conversation import next_question, update_state
 from recommender import generate_recommendation, format_recommendation
-from database import init_db, log_session, get_all_sessions, get_summary
+from database import init_db, log_session, get_all_sessions, get_summary, get_tenders
+from tender_monitor import run_scan
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -95,3 +96,14 @@ async def admin_sessions():
 @app.get("/admin/summary")
 async def admin_summary():
     return get_summary()
+
+
+@app.post("/tenders/scan")
+async def tenders_scan():
+    result = run_scan()
+    return result
+
+
+@app.get("/tenders")
+async def tenders_list():
+    return {"tenders": get_tenders()}

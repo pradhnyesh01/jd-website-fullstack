@@ -39,6 +39,19 @@ def init_db():
                 timestamp   TEXT
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS tenders (
+                id              SERIAL PRIMARY KEY,
+                tender_id       TEXT UNIQUE,
+                title           TEXT,
+                department      TEXT,
+                value           TEXT,
+                deadline        TEXT,
+                url             TEXT,
+                matched_keyword TEXT,
+                found_at        TEXT
+            )
+        """)
         conn.commit()
         cur.close()
         conn.close()
@@ -90,6 +103,61 @@ def get_all_sessions() -> list:
         return [dict(row) for row in rows]
     except Exception as e:
         logger.error(f"Failed to fetch sessions: {e}")
+        return []
+
+
+def tender_exists(tender_id: str) -> bool:
+    if not DATABASE_URL:
+        return False
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM tenders WHERE tender_id = %s LIMIT 1", (tender_id,))
+        exists = cur.fetchone() is not None
+        cur.close()
+        conn.close()
+        return exists
+    except Exception as e:
+        logger.error(f"tender_exists check failed: {e}")
+        return False
+
+
+def save_tender(tender_id: str, title: str, department: str, value: str,
+                deadline: str, url: str, keyword: str):
+    if not DATABASE_URL:
+        return
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO tenders (tender_id, title, department, value, deadline, url, matched_keyword, found_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (tender_id) DO NOTHING
+        """, (
+            tender_id, title, department, value, deadline, url, keyword,
+            datetime.utcnow().isoformat(),
+        ))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"save_tender failed: {e}")
+
+
+def get_tenders() -> list:
+    if not DATABASE_URL:
+        return []
+    try:
+        import psycopg2.extras
+        conn = get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM tenders ORDER BY found_at DESC")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        logger.error(f"get_tenders failed: {e}")
         return []
 
 
