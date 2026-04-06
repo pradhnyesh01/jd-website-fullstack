@@ -9,9 +9,16 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
+      - name: Wake up Render server
+        run: |
+          curl -s --max-time 60 --retry 3 --retry-delay 10 \
+               https://jd-website-fullstack.onrender.com/ || true
+          sleep 15
+
       - name: Trigger tender scan
         run: |
           curl -X POST https://jd-website-fullstack.onrender.com/tenders/scan \
                -H "Content-Type: application/json" \
-               --max-time 30 \
-               --retry 2
+               --max-time 180 \
+               --retry 2 \
+               --retry-delay 10
