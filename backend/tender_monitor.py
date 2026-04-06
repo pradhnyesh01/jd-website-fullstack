@@ -27,7 +27,7 @@ KEYWORDS = [
     "structured cabling",
 ]
 
-SEARCH_URL = "https://tenders.gov.in/tenders/advancedsearchlist.aspx"
+SEARCH_URL = "https://etenders.gov.in/eprocure/app"
 
 HEADERS = {
     "User-Agent": (
@@ -41,7 +41,7 @@ HEADERS = {
 
 
 def _search_keyword(client: httpx.Client, keyword: str) -> list[dict]:
-    """Search tenders.gov.in for a single keyword and return parsed rows."""
+    """Search etenders.gov.in for a single keyword and return parsed rows."""
     results = []
     try:
         params = {
@@ -55,7 +55,7 @@ def _search_keyword(client: httpx.Client, keyword: str) -> list[dict]:
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # tenders.gov.in renders results in a table with class "table"
+        # etenders.gov.in renders results in a table with class "table"
         table = soup.find("table", {"class": "table"})
         if not table:
             return results
@@ -78,7 +78,7 @@ def _search_keyword(client: httpx.Client, keyword: str) -> list[dict]:
             detail_url = ""
             if anchor and anchor.get("href"):
                 href = anchor["href"]
-                detail_url = href if href.startswith("http") else f"https://tenders.gov.in{href}"
+                detail_url = href if href.startswith("http") else f"https://etenders.gov.in{href}"
 
             if tender_id:
                 results.append({
