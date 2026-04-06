@@ -52,7 +52,9 @@ def _get_session(client: httpx.Client) -> str | None:
     try:
         resp = client.get(GEM_PAGE_URL, timeout=20)
         resp.raise_for_status()
-        match = re.search(r"csrf_bd_gem_nk['\"]:\s*['\"]([a-f0-9]+)['\"]", resp.text)
+        match = re.search(r"csrf_bd_gem_nk[',\"][\s:,]+['\"]([a-f0-9]+)['\"]", resp.text)
+        if not match:
+            match = re.search(r"csrf_bd_gem_nk.*?([a-f0-9]{32})", resp.text)
         if match:
             return match.group(1)
         logger.warning("CSRF token not found in GEM page — page structure may have changed")
@@ -124,6 +126,64 @@ def _search_keyword(client: httpx.Client, csrf: str, keyword: str) -> list[dict]
         logger.warning(f"Failed to search GEM for '{keyword}': {e}")
 
     return results
+
+
+def debug_scan() -> dict:
+    """
+    Runs a single keyword test and returns raw details for debugging.
+    Use GET /tenders/debug to call this.
+    """
+    result = {"csrf_found": False, "csrf_token": None, "api_status": None,
+              "docs_returned": 0, "sample": None, "error": None}
+    try:
+        with httpx.Client(headers=HEADERS, follow_redirects=True) as client:
+            # Step 1: get session + CSRF
+            resp = client.get(GEM_PAGE_URL, timeout=20)
+            result["page_status"] = resp.status_code
+            match = re.search(r"csrf_bd_gem_nk[',\"][\s:,]+['\"]([a-f0-9]+)['\"]", resp.text)
+            if not match:
+                # try wider pattern
+                match = re.search(r"csrf_bd_gem_nk.*?([a-f0-9]{32})", resp.text)
+            if match:
+                csrf = match.group(1)
+                result["csrf_found"] = True
+                result["csrf_token"] = csrf[:8] + "..."  # partial for security
+
+                # Step 2: try one keyword
+                postdata = {
+                    "page": 1,
+                    "param": {"searchBid": "cctv", "searchType": "fullText"},
+                    "filter": {"bidStatusType": "ongoing_bids", "byType": "all",
+                               "highBidValue": "", "byEndDate": {"from": "", "to": ""}},
+                }
+                api_resp = client.post(
+                    GEM_DATA_URL,
+                    data={"payload": json.dumps(postdata), "csrf_bd_gem_nk": csrf},
+                    headers={**HEADERS, "X-Requested-With": "XMLHttpRequest",
+                             "Referer": GEM_PAGE_URL,
+                             "Content-Type": "application/x-www-form-urlencoded"},
+                    timeout=20,
+                )
+                result["api_status"] = api_resp.status_code
+                result["api_raw_snippet"] = api_resp.text[:300]
+                try:
+                    data = api_resp.json()
+                    docs = data.get("response", {}).get("response", {}).get("docs", [])
+                    result["docs_returned"] = len(docs)
+                    if docs:
+                        result["sample"] = {
+                            "bid_number": docs[0].get("b_bid_number"),
+                            "category": docs[0].get("b_category_name"),
+                            "dept": docs[0].get("ba_official_details_deptName"),
+                        }
+                except Exception as e:
+                    result["parse_error"] = str(e)
+            else:
+                result["error"] = "CSRF token not found in page"
+                result["page_snippet"] = resp.text[:500]
+    except Exception as e:
+        result["error"] = str(e)
+    return result
 
 
 def run_scan() -> dict:
