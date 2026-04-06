@@ -140,9 +140,9 @@ def debug_scan() -> dict:
             # Step 1: get session + CSRF
             resp = client.get(GEM_PAGE_URL, timeout=20)
             result["page_status"] = resp.status_code
+            result["page_snippet"] = resp.text[:600]   # always capture for diagnosis
             match = re.search(r"csrf_bd_gem_nk[',\"][\s:,]+['\"]([a-f0-9]+)['\"]", resp.text)
             if not match:
-                # try wider pattern
                 match = re.search(r"csrf_bd_gem_nk.*?([a-f0-9]{32})", resp.text)
             if match:
                 csrf = match.group(1)

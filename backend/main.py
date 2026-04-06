@@ -104,11 +104,11 @@ async def tenders_scan():
     return result
 
 
-@app.get("/tenders")
-async def tenders_list():
-    return {"tenders": get_tenders()}
-
-
 @app.get("/tenders/debug")
 async def tenders_debug():
     return debug_scan()
+
+
+@app.get("/tenders")
+async def tenders_list():
+    return {"tenders": get_tenders()}
