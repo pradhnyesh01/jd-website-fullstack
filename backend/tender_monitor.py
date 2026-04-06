@@ -1,4 +1,6 @@
+import json
 import logging
+import re
 from datetime import datetime
 
 import httpx
@@ -8,7 +10,7 @@ from database import tender_exists, save_tender
 
 logger = logging.getLogger(__name__)
 
-# JD Enterprises business domain keywords — used for client-side filtering
+# JD Enterprises business domain keywords
 KEYWORDS = [
     "sound system",
     "public address",
@@ -27,9 +29,9 @@ KEYWORDS = [
     "structured cabling",
 ]
 
-# Latest Active Tenders listing — no CAPTCHA required for browsing
-BASE_URL = "https://etenders.gov.in/eprocure/app"
-LATEST_TENDERS_URL = f"{BASE_URL}?page=FrontEndLatestActiveTenders&service=page"
+GEM_PAGE_URL   = "https://bidplus.gem.gov.in/all-bids"
+GEM_DATA_URL   = "https://bidplus.gem.gov.in/all-bids-data"
+GEM_BID_URL    = "https://bidplus.gem.gov.in/bidding/bid-details/{bid_id}"
 
 HEADERS = {
     "User-Agent": (
@@ -42,129 +44,132 @@ HEADERS = {
 }
 
 
-def _matches_keyword(title: str) -> str | None:
-    """Return the first matching keyword if title matches any, else None."""
-    title_lower = title.lower()
-    for keyword in KEYWORDS:
-        if keyword in title_lower:
-            return keyword
+def _get_session(client: httpx.Client) -> str | None:
+    """
+    Load the GEM bids page to acquire session cookies and extract the CSRF token.
+    Returns the CSRF token string, or None on failure.
+    """
+    try:
+        resp = client.get(GEM_PAGE_URL, timeout=20)
+        resp.raise_for_status()
+        match = re.search(r"csrf_bd_gem_nk['\"]:\s*['\"]([a-f0-9]+)['\"]", resp.text)
+        if match:
+            return match.group(1)
+        logger.warning("CSRF token not found in GEM page — page structure may have changed")
+    except Exception as e:
+        logger.error(f"Failed to load GEM page for session: {e}")
     return None
 
 
-def _fetch_tenders_page(client: httpx.Client, page_url: str) -> list[dict]:
-    """Fetch a single listing page and return all parsed tender rows."""
+def _search_keyword(client: httpx.Client, csrf: str, keyword: str) -> list[dict]:
+    """
+    POST to GEM's internal API for a single keyword search.
+    Returns a list of bid dicts.
+    """
     results = []
     try:
-        response = client.get(page_url, timeout=20)
-        response.raise_for_status()
+        postdata = {
+            "page": 1,
+            "param": {
+                "searchBid": keyword,
+                "searchType": "fullText",
+            },
+            "filter": {
+                "bidStatusType": "ongoing_bids",
+                "byType": "all",
+                "highBidValue": "",
+                "byEndDate": {"from": "", "to": ""},
+            },
+        }
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        resp = client.post(
+            GEM_DATA_URL,
+            data={
+                "payload": json.dumps(postdata),
+                "csrf_bd_gem_nk": csrf,
+            },
+            headers={**HEADERS, "X-Requested-With": "XMLHttpRequest",
+                     "Referer": GEM_PAGE_URL,
+                     "Content-Type": "application/x-www-form-urlencoded"},
+            timeout=20,
+        )
+        resp.raise_for_status()
 
-        # etenders.gov.in uses class="list_table" for tender listings
-        table = soup.find("table", {"class": "list_table"})
-        if not table:
-            logger.warning("No list_table found on page — site structure may have changed")
-            return results
+        data = resp.json()
+        docs = data.get("response", {}).get("response", {}).get("docs", [])
 
-        rows = table.find_all("tr")
-        for row in rows:
-            # Skip header and footer rows
-            if row.get("class") and any(
-                c in row.get("class", []) for c in ["list_header", "list_footer"]
-            ):
-                continue
+        for doc in docs:
+            bid_id    = str(doc.get("b_id", [""])[0]) if doc.get("b_id") else ""
+            bid_number = doc.get("b_bid_number", [""])[0] if doc.get("b_bid_number") else ""
+            category  = doc.get("b_category_name", [""])[0] if doc.get("b_category_name") else ""
+            ministry  = doc.get("ba_official_details_minName", [""])[0] if doc.get("ba_official_details_minName") else ""
+            dept      = doc.get("ba_official_details_deptName", [""])[0] if doc.get("ba_official_details_deptName") else ""
+            deadline  = doc.get("final_end_date_sort", [""])[0][:10] if doc.get("final_end_date_sort") else ""
+            detail_url = GEM_BID_URL.format(bid_id=bid_id) if bid_id else ""
 
-            cols = row.find_all("td")
-            if len(cols) < 4:
-                continue
-
-            # Column layout: S.No | AOC Date | e-Published Date | Title & Ref No | Organisation | AOC
-            title_cell = cols[3] if len(cols) > 3 else cols[-1]
-            title_text = title_cell.get_text(separator=" ", strip=True)
-
-            # Extract tender ID from the title cell (Ref.No.)
-            tender_id = ""
-            anchor = title_cell.find("a")
-            if anchor:
-                href = anchor.get("href", "")
-                detail_url = href if href.startswith("http") else f"{BASE_URL}{href}"
-                # Use the link's text or href fragment as tender ID
-                tender_id = href.split("tenderId=")[-1].split("&")[0] if "tenderId=" in href else href.split("/")[-1]
-            else:
-                detail_url = ""
-
-            # Fall back to title as tender ID if nothing else available
-            if not tender_id:
-                tender_id = title_text[:80]
-
-            organisation = cols[4].get_text(strip=True) if len(cols) > 4 else ""
-            deadline = cols[1].get_text(strip=True) if len(cols) > 1 else ""
-
-            results.append({
-                "tender_id": tender_id,
-                "title": title_text,
-                "department": organisation,
-                "value": "",          # not shown on listing page
-                "deadline": deadline,
-                "url": detail_url,
-            })
+            if bid_number:
+                results.append({
+                    "tender_id": bid_number,
+                    "title": category,
+                    "department": f"{ministry} — {dept}".strip(" —"),
+                    "value": "",
+                    "deadline": deadline,
+                    "url": detail_url,
+                    "keyword": keyword,
+                })
 
     except httpx.TimeoutException:
-        logger.warning("Timeout fetching latest tenders page")
-    except httpx.HTTPStatusError as e:
-        logger.warning(f"HTTP error fetching tenders: {e.response.status_code}")
+        logger.warning(f"Timeout searching GEM for keyword: {keyword}")
     except Exception as e:
-        logger.warning(f"Failed to fetch tenders page: {e}")
+        logger.warning(f"Failed to search GEM for '{keyword}': {e}")
 
     return results
 
 
 def run_scan() -> dict:
     """
-    Fetch the latest active tenders listing from etenders.gov.in,
-    filter by domain keywords client-side, and save new matches.
-    No CAPTCHA required — browsing the listing page is open access.
-    Completely isolated — failures do not affect the chatbot.
+    Search GEM (gem.gov.in) for each domain keyword, deduplicate,
+    and save new bids to the database.
+    Isolated — failures do not affect the chatbot.
     """
     new_count = 0
     errors = []
 
     try:
         with httpx.Client(headers=HEADERS, follow_redirects=True) as client:
-            tenders = _fetch_tenders_page(client, LATEST_TENDERS_URL)
+            csrf = _get_session(client)
+            if not csrf:
+                return {
+                    "new_tenders_found": 0,
+                    "keywords_scanned": 0,
+                    "error": "Could not obtain CSRF token from GEM portal",
+                    "scanned_at": datetime.utcnow().isoformat(),
+                }
 
-            if not tenders:
-                logger.warning("No tenders fetched — page may be empty or structure changed")
-
-            for tender in tenders:
+            for keyword in KEYWORDS:
                 try:
-                    matched_keyword = _matches_keyword(tender["title"])
-                    if not matched_keyword:
-                        continue  # not relevant to JD's domain
-
-                    if tender_exists(tender["tender_id"]):
-                        continue  # already stored
-
-                    save_tender(
-                        tender_id=tender["tender_id"],
-                        title=tender["title"],
-                        department=tender["department"],
-                        value=tender["value"],
-                        deadline=tender["deadline"],
-                        url=tender["url"],
-                        keyword=matched_keyword,
-                    )
-                    new_count += 1
-
+                    bids = _search_keyword(client, csrf, keyword)
+                    for bid in bids:
+                        if not tender_exists(bid["tender_id"]):
+                            save_tender(
+                                tender_id=bid["tender_id"],
+                                title=bid["title"],
+                                department=bid["department"],
+                                value=bid["value"],
+                                deadline=bid["deadline"],
+                                url=bid["url"],
+                                keyword=bid["keyword"],
+                            )
+                            new_count += 1
                 except Exception as e:
-                    errors.append(f"{tender.get('tender_id', '?')}: {str(e)}")
-                    logger.warning(f"Error processing tender: {e}")
+                    errors.append(f"{keyword}: {str(e)}")
+                    logger.warning(f"Error processing keyword '{keyword}': {e}")
 
     except Exception as e:
         logger.error(f"Tender scan failed: {e}")
         return {
             "new_tenders_found": 0,
-            "keywords_scanned": len(KEYWORDS),
+            "keywords_scanned": 0,
             "error": str(e),
             "scanned_at": datetime.utcnow().isoformat(),
         }
