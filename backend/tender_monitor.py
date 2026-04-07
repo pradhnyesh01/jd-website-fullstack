@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from datetime import datetime
+from typing import Optional
 
 import httpx
 from bs4 import BeautifulSoup
@@ -44,7 +45,7 @@ HEADERS = {
 }
 
 
-def _get_session(client: httpx.Client) -> str | None:
+def _get_session(client: httpx.Client) -> Optional[str]:
     """
     Load the GEM bids page to acquire session cookies and extract the CSRF token.
     Returns the CSRF token string, or None on failure.
